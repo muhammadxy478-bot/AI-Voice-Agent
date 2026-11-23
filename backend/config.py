@@ -78,7 +78,11 @@ class Settings:
     @property
     def DATABASE_PATH(self) -> Path:
         raw = Path(os.getenv("DATABASE_PATH", "data/chat_history.db"))
-        return raw if raw.is_absolute() else BASE_DIR / raw
+        if raw.is_absolute():
+            return raw
+        if os.getenv("VERCEL"):
+            return Path("/tmp") / raw.name
+        return BASE_DIR / raw
 
     @property
     def HOST(self) -> str:

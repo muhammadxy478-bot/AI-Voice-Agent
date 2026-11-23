@@ -303,3 +303,21 @@ def test_clean_text_for_speech():
     assert "a link" in cleaned
     assert "https://example.com" not in cleaned
     assert "print" not in cleaned
+
+
+def test_vercel_entrypoint_and_serverless_db_defaults(monkeypatch, tmp_path):
+    from api.index import app as vercel_app
+    from backend.config import settings
+
+    with TestClient(vercel_app) as client:
+        assert client.get("/").status_code == 200
+        assert client.get("/static/app.js").status_code == 200
+        assert client.get("/api/health").status_code == 200
+
+    monkeypatch.setenv("VERCEL", "1")
+    monkeypatch.setenv("DATABASE_PATH", "data/chat_history.db")
+    assert settings.DATABASE_PATH.as_posix().endswith("/tmp/chat_history.db")
+
+    # Lazy initialization without explicit init_db() call
+    lazy_db = ChatDatabase(tmp_path / "lazy.db")
+    assert lazy_db.list_sessions() == []

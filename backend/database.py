@@ -21,6 +21,7 @@ class ChatDatabase:
 
     def __init__(self, db_path: Path | str) -> None:
         self.db_path = Path(db_path)
+        self._initialized = False
 
     @contextmanager
     def _connect(self) -> Iterator[sqlite3.Connection]:
@@ -38,10 +39,18 @@ class ChatDatabase:
         finally:
             conn.close()
 
+    def _ensure_initialized(self) -> None:
+        """Lazily initialize schema if lifespan did not run (e.g. serverless cold start)."""
+        if not self._initialized:
+            self.init_db()
+
     def init_db(self) -> None:
         """Initialize schema and WAL journal mode."""
         with self._connect() as conn:
-            conn.execute("PRAGMA journal_mode = WAL;")
+            try:
+                conn.execute("PRAGMA journal_mode = WAL;")
+            except sqlite3.OperationalError:
+                pass
             conn.executescript(
                 """
                 CREATE TABLE IF NOT EXISTS sessions (
@@ -69,6 +78,7 @@ class ChatDatabase:
                     ON messages(session_id, id);
                 """
             )
+        self._initialized = True
 
     @staticmethod
     def _row_to_session(row: sqlite3.Row) -> dict[str, Any]:
@@ -98,6 +108,7 @@ class ChatDatabase:
 
     def list_sessions(self, query: Optional[str] = None) -> list[dict[str, Any]]:
         """List sessions ordered by most recently updated, optionally filtered by query."""
+        self._ensure_initialized()
         search = (query or "").strip().lower()
         with self._connect() as conn:
             if search:
@@ -136,6 +147,7 @@ class ChatDatabase:
         persona: str = DEFAULT_PERSONA_NAME,
     ) -> dict[str, Any]:
         """Create and persist a new chat session."""
+        self._ensure_initialized()
         session_id = str(uuid.uuid4())
         clean_title = (title or "").strip() or "New Conversation"
         resolved_persona = get_persona(persona)["name"]
@@ -159,6 +171,7 @@ class ChatDatabase:
 
     def get_session(self, session_id: str) -> Optional[dict[str, Any]]:
         """Return a session by ID or None if not found."""
+        self._ensure_initialized()
         with self._connect() as conn:
             row = conn.execute(
                 """
@@ -179,6 +192,7 @@ class ChatDatabase:
         persona: Optional[str] = None,
     ) -> Optional[dict[str, Any]]:
         """Update session title and/or persona and return the updated record."""
+        self._ensure_initialized()
         fields: list[str] = []
         values: list[Any] = []
         if title is not None:
@@ -208,6 +222,7 @@ class ChatDatabase:
 
     def delete_session(self, session_id: str) -> bool:
         """Delete a session and its cascaded messages."""
+        self._ensure_initialized()
         with self._connect() as conn:
             cur = conn.execute("DELETE FROM sessions WHERE id = ?", (session_id,))
             return cur.rowcount > 0
@@ -224,6 +239,7 @@ class ChatDatabase:
         model: Optional[str] = None,
     ) -> dict[str, Any]:
         """Insert a message into a session and bump session updated_at."""
+        self._ensure_initialized()
         now = _utc_now()
         with self._connect() as conn:
             cur = conn.execute(
@@ -263,6 +279,7 @@ class ChatDatabase:
         limit: Optional[int] = None,
     ) -> list[dict[str, Any]]:
         """Return messages for a session in chronological order."""
+        self._ensure_initialized()
         with self._connect() as conn:
             if limit is not None and limit > 0:
                 rows = conn.execute(

@@ -112,3 +112,17 @@ AI-Voice-Agent/
    .\.venv\Scripts\python.exe -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
    ```
    Open **http://127.0.0.1:8000** (or **http://127.0.0.1:8000/docs** for Swagger).
+
+---
+
+## Deploying to Vercel
+
+This repository includes `api/index.py`, `vercel.json`, and `.python-version` (`3.12`) for zero-config FastAPI deployment on Vercel:
+
+1. Connect the GitHub repository in the Vercel Dashboard.
+2. In **Project Settings -> Environment Variables**, add:
+   - `OPENAI_API_KEY` = your Groq API key (`gsk_...`)
+   - `OPENAI_BASE_URL` = `https://api.groq.com/openai/v1`
+   - `LLM_MODEL` = `openai/gpt-oss-120b`
+   - `STT_MODEL` = `whisper-large-v3-turbo`
+3. Deploy (or push to `main`). When `VERCEL` is set, SQLite automatically writes to `/tmp/chat_history.db` (ephemeral across cold starts; swap in an external Postgres/Turso database if cross-instance persistence is required in production).
