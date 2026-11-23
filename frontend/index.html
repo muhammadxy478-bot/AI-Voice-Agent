@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NexusVoice AI — Enterprise Conversational &amp; Voice Assistant</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet"
+  />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ["Inter", "system-ui", "sans-serif"],
+            mono: ["JetBrains Mono", "ui-monospace", "monospace"],
+          },
+        },
+      },
+    };
+  </script>
+
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"
+  />
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body class="bg-[#0b0f17] text-slate-100 font-sans antialiased selection:bg-indigo-500/30 selection:text-indigo-100">
+  <div id="app-shell" class="flex h-screen w-screen overflow-hidden">
+    <!-- Mobile Backdrop -->
+    <div
+      id="sidebar-backdrop"
+      class="fixed inset-0 z-30 hidden bg-black/60 backdrop-blur-sm lg:hidden"
+    ></div>
+
+    <!-- Left Sidebar -->
+    <aside
+      id="sidebar"
+      class="fixed inset-y-0 left-0 z-40 flex w-80 -translate-x-full flex-col border-r border-slate-800/80 bg-[#090d14] transition-transform duration-200 ease-out lg:static lg:translate-x-0"
+    >
+      <!-- Brand Header -->
+      <div class="flex items-center justify-between border-b border-slate-800/80 px-4 py-3.5">
+        <div class="flex items-center gap-2.5">
+          <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 via-violet-500 to-cyan-400 shadow-lg shadow-indigo-500/20">
+            <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
+            </svg>
+          </div>
+          <div>
+            <h1 class="text-sm font-semibold tracking-tight text-white">NexusVoice AI</h1>
+            <p class="text-[11px] text-slate-400">Enterprise Voice &amp; LLM</p>
+          </div>
+        </div>
+        <span
+          id="api-status-pill"
+          class="inline-flex items-center gap-1.5 rounded-full border border-slate-700/80 bg-slate-900/90 px-2.5 py-1 text-[11px] font-medium text-slate-300"
+          title="Groq API configuration status"
+        >
+          <span id="api-status-dot" class="h-2 w-2 rounded-full bg-slate-500"></span>
+          <span id="api-status-text">Checking</span>
+        </span>
+      </div>
+
+      <!-- New Chat & Search -->
+      <div class="space-y-2.5 p-3">
+        <button
+          id="new-chat-btn"
+          type="button"
+          class="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-3.5 py-2.5 text-sm font-medium text-white shadow-sm shadow-indigo-600/25 transition hover:bg-indigo-500 active:scale-[0.99]"
+        >
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+          New Chat
+        </button>
+
+        <div class="relative">
+          <svg
+            class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            id="session-search"
+            type="text"
+            placeholder="Search conversations..."
+            autocomplete="off"
+            class="w-full rounded-xl border border-slate-800 bg-slate-900/70 py-2 pl-9 pr-8 text-xs text-slate-200 placeholder-slate-500 outline-none transition focus:border-indigo-500/70 focus:bg-slate-900"
+          />
+          <button
+            id="clear-search-btn"
+            type="button"
+            title="Clear search"
+            class="absolute right-2.5 top-1/2 hidden -translate-y-1/2 text-slate-500 hover:text-slate-300"
+          >
+            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Saved SQLite Conversation Threads -->
+      <div class="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+        Saved Conversations
+      </div>
+      <div id="session-list" class="custom-scrollbar flex-1 space-y-1 overflow-y-auto px-2.5 pb-3">
+        <!-- Populated dynamically -->
+      </div>
+
+      <!-- Persona, Voice & Auto-Speak Controls -->
+      <div class="space-y-3 border-t border-slate-800/80 bg-[#070a10] p-3.5">
+        <div>
+          <label for="persona-select" class="mb-1 block text-[11px] font-medium uppercase tracking-wider text-slate-400">
+            Assistant Persona
+          </label>
+          <select
+            id="persona-select"
+            class="w-full rounded-lg border border-slate-800 bg-slate-900 px-2.5 py-2 text-xs font-medium text-slate-100 outline-none transition focus:border-indigo-500"
+          >
+            <option value="Senior AI Architect">Senior AI Architect</option>
+            <option value="Executive Assistant">Executive Assistant</option>
+            <option value="Technical Interviewer">Technical Interviewer</option>
+          </select>
+          <p id="persona-tagline" class="mt-1 line-clamp-2 text-[11px] leading-snug text-slate-500">
+            Distributed systems, LLM pipelines, and production architecture trade-offs
+          </p>
+        </div>
+
+        <div>
+          <label for="voice-select" class="mb-1 block text-[11px] font-medium uppercase tracking-wider text-slate-400">
+            TTS Voice
+          </label>
+          <select
+            id="voice-select"
+            class="w-full rounded-lg border border-slate-800 bg-slate-900 px-2.5 py-2 text-xs font-medium text-slate-100 outline-none transition focus:border-indigo-500"
+          >
+            <optgroup label="Groq Orpheus">
+              <option value="troy" selected>Troy (Groq Orpheus)</option>
+              <option value="diana">Diana (Groq Orpheus)</option>
+              <option value="hannah">Hannah (Groq Orpheus)</option>
+              <option value="autumn">Autumn (Groq Orpheus)</option>
+              <option value="austin">Austin (Groq Orpheus)</option>
+              <option value="daniel">Daniel (Groq Orpheus)</option>
+            </optgroup>
+            <optgroup label="Edge Neural Fallback">
+              <option value="en-US-AriaNeural">Aria (Edge Neural US)</option>
+              <option value="en-US-GuyNeural">Guy (Edge Neural US)</option>
+              <option value="en-GB-SoniaNeural">Sonia (Edge Neural UK)</option>
+              <option value="en-US-JennyNeural">Jenny (Edge Neural US)</option>
+            </optgroup>
+            <optgroup label="Browser Native">
+              <option value="web_speech">Browser Native (Web Speech)</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <div class="flex items-center justify-between pt-0.5">
+          <div>
+            <span class="text-xs font-medium text-slate-200">Auto-Speak Replies</span>
+            <p class="text-[11px] text-slate-500">Speak assistant answers aloud</p>
+          </div>
+          <label class="relative inline-flex cursor-pointer items-center">
+            <input id="auto-speak-toggle" type="checkbox" class="peer sr-only" />
+            <div class="h-5 w-9 rounded-full bg-slate-700 transition after:absolute after:left-0.5 after:top-0.5 after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-all peer-checked:bg-indigo-600 peer-checked:after:translate-x-4"></div>
+          </label>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Chat Canvas -->
+    <main class="relative flex flex-1 flex-col overflow-hidden bg-[#111622]">
+      <!-- Sticky Header -->
+      <header class="flex items-center justify-between border-b border-slate-800/80 bg-[#0e131e]/90 px-4 py-3 backdrop-blur-md lg:px-6">
+        <div class="flex min-w-0 items-center gap-3">
+          <button
+            id="mobile-menu-btn"
+            type="button"
+            class="rounded-lg border border-slate-800 bg-slate-900 p-2 text-slate-300 hover:bg-slate-800 lg:hidden"
+            aria-label="Open sidebar"
+          >
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+            </svg>
+          </button>
+
+          <div class="min-w-0">
+            <h2 id="chat-title" class="truncate text-sm font-semibold text-white">
+              New Conversation
+            </h2>
+            <div class="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
+              <span
+                id="header-persona-badge"
+                class="inline-flex items-center rounded-md border border-indigo-500/30 bg-indigo-500/10 px-1.5 py-0.5 font-medium text-indigo-300"
+              >
+                Senior AI Architect
+              </span>
+              <span class="text-slate-600">•</span>
+              <span id="header-model-badge" class="font-mono text-slate-400">openai/gpt-oss-120b</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button
+            id="stop-audio-btn"
+            type="button"
+            class="hidden items-center gap-1.5 rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-1.5 text-xs font-medium text-rose-300 transition hover:bg-rose-500/20"
+          >
+            <span class="eq-bars" aria-hidden="true">
+              <span></span><span></span><span></span>
+            </span>
+            Stop Audio
+          </button>
+
+          <button
+            id="open-voice-modal-btn"
+            type="button"
+            class="inline-flex items-center gap-2 rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-3.5 py-1.5 text-xs font-medium text-cyan-300 transition hover:border-cyan-400/50 hover:bg-cyan-500/20"
+          >
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9.348 14.651a3.75 3.75 0 010-5.303m5.304 0a3.75 3.75 0 010 5.303m-7.425 2.122a6.75 6.75 0 010-9.546m9.546 0a6.75 6.75 0 010 9.546M5.106 18.894c-3.808-3.808-3.808-9.98 0-13.789m13.788 0c3.808 3.808 3.808 9.981 0 13.79M12 12h.008v.007H12V12z" />
+            </svg>
+            <span class="hidden sm:inline">Live Voice Mode</span>
+            <span class="sm:hidden">Voice</span>
+          </button>
+
+          <a
+            href="/docs"
+            target="_blank"
+            rel="noopener"
+            class="hidden rounded-xl border border-slate-800 bg-slate-900/80 px-2.5 py-1.5 font-mono text-[11px] text-slate-400 transition hover:border-slate-700 hover:text-slate-200 md:inline-flex"
+            title="Open FastAPI Swagger Documentation"
+          >
+            /docs
+          </a>
+        </div>
+      </header>
+
+      <!-- API Key Setup Notice -->
+      <div
+        id="api-key-banner"
+        class="hidden items-center justify-between gap-3 border-b border-amber-500/20 bg-amber-500/10 px-4 py-2 text-xs text-amber-200 lg:px-6"
+      >
+        <div class="flex items-center gap-2">
+          <svg class="h-4 w-4 shrink-0 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+          </svg>
+          <span>
+            Groq API key is set to a placeholder. Add your real key to
+            <code class="rounded bg-black/30 px-1.5 py-0.5 font-mono text-amber-100">.env</code>
+            (<code class="font-mono">OPENAI_API_KEY</code>) for live LLM &amp; Whisper STT.
+          </span>
+        </div>
+        <button
+          id="dismiss-banner-btn"
+          type="button"
+          class="shrink-0 rounded-md px-2 py-0.5 text-amber-300 hover:bg-amber-500/20"
+        >
+          Dismiss
+        </button>
+      </div>
+
+      <!-- Chat Messages Feed -->
+      <div id="chat-scroll" class="custom-scrollbar relative flex-1 overflow-y-auto px-4 py-6 lg:px-8">
+        <div class="mx-auto max-w-4xl">
+          <!-- Empty State -->
+          <div id="empty-state" class="flex flex-col items-center justify-center py-10 text-center">
+            <div class="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-indigo-500/30 bg-gradient-to-br from-indigo-500/20 via-violet-500/15 to-cyan-500/20 shadow-xl shadow-indigo-950/40">
+              <svg class="h-8 w-8 text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 9.75a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375m-13.5 3.01c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.184-4.183a1.14 1.14 0 01.778-.332 48.294 48.294 0 005.83-.498c1.585-.233 2.708-1.626 2.708-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+              </svg>
+            </div>
+            <h3 class="text-2xl font-semibold tracking-tight text-white">
+              Enterprise Conversational &amp; Voice AI
+            </h3>
+            <p class="mt-2 max-w-xl text-sm text-slate-400">
+              Real-time Groq token streaming, persistent SQLite threads, Whisper voice transcription,
+              and neural speech playback. Choose a starter prompt or launch Live Voice Mode.
+            </p>
+
+            <div id="starter-prompts" class="mt-7 grid w-full grid-cols-1 gap-3 text-left sm:grid-cols-2">
+              <!-- Populated by app.js per active persona -->
+            </div>
+          </div>
+
+          <!-- Conversation Messages -->
+          <div id="messages-container" class="space-y-6"></div>
+        </div>
+      </div>
+
+      <!-- Scroll To Bottom Button -->
+      <button
+        id="scroll-bottom-btn"
+        type="button"
+        title="Scroll to latest message"
+        class="absolute bottom-28 right-6 z-20 hidden rounded-full border border-slate-700 bg-slate-900/95 p-2.5 text-slate-300 shadow-lg transition hover:border-indigo-500 hover:text-white"
+      >
+        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5L12 21m0 0l-7.5-7.5M12 21V3" />
+        </svg>
+      </button>
+
+      <!-- Bottom Input Dock -->
+      <div class="border-t border-slate-800/80 bg-[#0d121c]/95 px-4 py-3.5 backdrop-blur-md lg:px-8">
+        <div class="mx-auto max-w-4xl">
+          <!-- Recording Status Bar -->
+          <div
+            id="dock-recording-bar"
+            class="mb-2.5 hidden items-center justify-between rounded-xl border border-rose-500/30 bg-rose-500/10 px-3.5 py-2 text-xs text-rose-200"
+          >
+            <div class="flex items-center gap-2.5">
+              <span class="h-2.5 w-2.5 animate-ping rounded-full bg-rose-400"></span>
+              <span class="font-medium">Listening with microphone...</span>
+              <span id="dock-recording-timer" class="font-mono text-rose-300">00:00</span>
+            </div>
+            <span class="text-[11px] text-rose-300/80">Click Mic again to transcribe</span>
+          </div>
+
+          <div class="flex items-end gap-2 rounded-2xl border border-slate-700/80 bg-slate-900/90 p-2 shadow-xl shadow-black/30 focus-within:border-indigo-500/80">
+            <button
+              id="mic-btn"
+              type="button"
+              title="Record voice prompt (Whisper STT)"
+              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-800 hover:text-cyan-300"
+            >
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
+              </svg>
+            </button>
+
+            <textarea
+              id="prompt-input"
+              rows="1"
+              placeholder="Ask anything... (Enter to send, Shift+Enter for new line)"
+              class="custom-scrollbar max-h-44 flex-1 resize-none bg-transparent py-2 text-sm leading-relaxed text-slate-100 placeholder-slate-500 outline-none"
+            ></textarea>
+
+            <button
+              id="dock-voice-btn"
+              type="button"
+              title="Open Live Voice Mode"
+              class="hidden h-10 shrink-0 items-center gap-1.5 rounded-xl border border-slate-700/80 bg-slate-800/70 px-3 text-xs font-medium text-cyan-300 transition hover:border-cyan-500/40 hover:bg-slate-800 sm:inline-flex"
+            >
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 12h2.5l2-5 3 10 3-13 2.5 8H21" />
+              </svg>
+              Voice
+            </button>
+
+            <button
+              id="send-btn"
+              type="button"
+              title="Send message"
+              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-md shadow-indigo-600/25 transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              <svg id="send-icon" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+              </svg>
+              <svg id="stop-stream-icon" class="hidden h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                <rect x="6" y="6" width="12" height="12" rx="2" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="mt-1.5 flex items-center justify-between px-1 text-[11px] text-slate-500">
+            <span>SQLite persistent threads • Groq Whisper + Orpheus / Edge TTS</span>
+            <span class="hidden sm:inline">Enter to send • Shift+Enter for newline</span>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Live Voice Mode Overlay Modal -->
+  <div
+    id="voice-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="voice-modal-title"
+    class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 p-4 backdrop-blur-md"
+  >
+    <div class="relative flex w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-slate-700/80 bg-[#0b101b] p-6 shadow-2xl shadow-black/70">
+      <!-- Top Row -->
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 id="voice-modal-title" class="text-base font-semibold text-white">
+            Live Voice Mode
+          </h3>
+          <p id="voice-modal-meta" class="text-xs text-slate-400">
+            Senior AI Architect • Voice: troy
+          </p>
+        </div>
+        <button
+          id="close-voice-modal-btn"
+          type="button"
+          aria-label="Close Live Voice Mode"
+          class="rounded-xl border border-slate-800 bg-slate-900 p-2 text-slate-400 transition hover:bg-slate-800 hover:text-white"
+        >
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Status Pill -->
+      <div class="mt-5 flex justify-center">
+        <span
+          id="voice-status-badge"
+          class="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-900/90 px-4 py-1.5 text-xs font-medium text-slate-200"
+        >
+          <span id="voice-status-dot" class="h-2.5 w-2.5 rounded-full bg-cyan-400"></span>
+          <span id="voice-status-text">Ready — Tap microphone to speak</span>
+        </span>
+      </div>
+
+      <!-- HTML5 Canvas Audio Frequency Waveform -->
+      <div class="mt-5 overflow-hidden rounded-2xl border border-slate-800/90 bg-[#060911] p-3">
+        <canvas id="voice-waveform" class="h-44 w-full"></canvas>
+      </div>
+
+      <!-- Live Subtitles -->
+      <div
+        id="voice-transcript-box"
+        class="custom-scrollbar mt-4 max-h-36 min-h-[5.5rem] space-y-2 overflow-y-auto rounded-2xl border border-slate-800/80 bg-slate-900/60 p-3.5 text-sm"
+      >
+        <p class="text-xs text-slate-500">
+          Your transcribed speech and the AI assistant's live reply will appear here.
+        </p>
+      </div>
+
+      <!-- Action Controls -->
+      <div class="mt-6 flex flex-col items-center gap-4">
+        <div class="flex items-center gap-5">
+          <button
+            id="voice-action-btn"
+            type="button"
+            class="voice-orb-idle flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500 to-indigo-600 text-white shadow-xl shadow-indigo-600/30 transition hover:scale-105 active:scale-95"
+            aria-label="Start or stop voice capture"
+          >
+            <svg id="voice-orb-mic" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
+            </svg>
+            <svg id="voice-orb-stop" class="hidden h-7 w-7" fill="currentColor" viewBox="0 0 24 24">
+              <rect x="6" y="6" width="12" height="12" rx="2.5" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="flex w-full flex-wrap items-center justify-between gap-3 text-xs text-slate-400">
+          <span id="voice-action-label" class="font-medium text-slate-300">Tap to Speak</span>
+
+          <div class="flex items-center gap-4">
+            <button
+              id="voice-interrupt-btn"
+              type="button"
+              class="hidden rounded-lg border border-rose-500/30 bg-rose-500/10 px-2.5 py-1 text-xs text-rose-300 hover:bg-rose-500/20"
+            >
+              Stop AI Audio
+            </button>
+
+            <label class="flex cursor-pointer items-center gap-2 select-none">
+              <input
+                id="hands-free-toggle"
+                type="checkbox"
+                class="h-3.5 w-3.5 rounded border-slate-700 bg-slate-900 text-indigo-500 focus:ring-0"
+              />
+              <span>Auto-listen after reply</span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notifications -->
+  <div id="toast-container" class="pointer-events-none fixed right-5 top-5 z-[60] flex flex-col gap-2"></div>
+
+  <!-- Persistent Audio Element for Web Audio Analyser & Unblocked Playback -->
+  <audio id="tts-audio" preload="auto" class="hidden"></audio>
+
+  <!-- Markdown, Sanitizer & Syntax Highlighting CDNs -->
+  <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>
