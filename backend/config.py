@@ -9,7 +9,11 @@ from typing import Optional
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-FRONTEND_DIR = BASE_DIR / "frontend"
+FRONTEND_DIR = (
+    BASE_DIR / "frontend"
+    if (BASE_DIR / "frontend").exists()
+    else Path.cwd() / "frontend"
+)
 
 load_dotenv(BASE_DIR / ".env", override=False)
 
